@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASKA IPS Kelas 9 – Game Kuis</title>
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d2b;
+    --card: #151540;
+    --accent1: #f9c02e;
+    --accent2: #ff5e7e;
+    --accent3: #3de8c5;
+    --accent4: #a78bfa;
+    --text: #f0f0ff;
+    --muted: #9999cc;
+    --correct: #22c55e;
+    --wrong: #ef4444;
+    --btn-a: #ff5e7e;
+    --btn-b: #f9c02e;
+    --btn-c: #3de8c5;
+    --btn-d: #a78bfa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Starfield background */
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    opacity: 0;
+    animation: twinkle var(--dur) infinite var(--delay);
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0; transform: scale(1); }
+    50% { opacity: var(--op); transform: scale(1.4); }
+  }
+
+  /* Floating orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    animation: floatOrb 8s ease-in-out infinite alternate;
+  }
+  .orb1 { width:400px;height:400px;background:rgba(247,192,46,0.12);top:-100px;left:-100px;animation-delay:0s; }
+  .orb2 { width:350px;height:350px;background:rgba(255,94,126,0.10);bottom:-80px;right:-80px;animation-delay:-3s; }
+  .orb3 { width:300px;height:300px;background:rgba(61,232,197,0.08);top:40%;left:50%;animation-delay:-5s; }
+  @keyframes floatOrb {
+    from { transform: translate(0,0) scale(1); }
+    to { transform: translate(30px,20px) scale(1.1); }
+  }
+
+  /* Container */
+  #app {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 700px;
+    padding: 16px;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; animation: fadeIn 0.5s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  /* START SCREEN */
+  #start-screen { text-align: center; }
+  .logo-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    color: #0d0d2b;
+  }
+  .title-main {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 50%, var(--accent4) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .title-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .mode-card {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card::before {
+    content: '';
+    position: absolute; inset:0;
+    background: var(--glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .mode-card:hover::before { opacity: 0.07; }
+  .mode-card:hover { transform: translateY(-4px); border-color: var(--glow-border); }
+  .mode-card.selected { border-color: var(--glow-border); background: var(--glow-bg); }
+  .mode-card .mode-icon { font-size: 2.2rem; margin-bottom: 8px; }
+  .mode-card .mode-name { font-weight: 900; font-size: 1rem; margin-bottom: 4px; }
+  .mode-card .mode-desc { font-size: 0.75rem; color: var(--muted); }
+
+  .mode-card[data-mode="10"] { --glow: #f9c02e; --glow-border: #f9c02e; --glow-bg: rgba(249,192,46,0.06); }
+  .mode-card[data-mode="25"] { --glow: #3de8c5; --glow-border: #3de8c5; --glow-bg: rgba(61,232,197,0.06); }
+  .mode-card[data-mode="50"] { --glow: #ff5e7e; --glow-border: #ff5e7e; --glow-bg: rgba(255,94,126,0.06); }
+  .mode-card[data-mode="time"] { --glow: #a78bfa; --glow-border: #a78bfa; --glow-bg: rgba(167,139,250,0.06); }
+
+  .btn-start {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 16px;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: #0d0d2b;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 30px rgba(255,94,126,0.3);
+  }
+  .btn-start:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 40px rgba(255,94,126,0.5); }
+  .btn-start:active { transform: scale(0.98); }
+
+  .stats-row {
+    display: flex; justify-content: center; gap: 24px;
+    margin-bottom: 28px;
+  }
+  .stat-chip {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 10px 18px;
+    text-align: center;
+  }
+  .stat-chip .val { font-family:'Boogaloo',cursive; font-size:1.5rem; color:var(--accent1); }
+  .stat-chip .lbl { font-size:0.65rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+
+  /* QUIZ SCREEN */
+  .quiz-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; gap: 12px;
+  }
+  .q-counter {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.1rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .q-counter span { color: var(--accent1); font-size: 1.4rem; }
+
+  .progress-track {
+    flex:1;
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent1));
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .timer-badge {
+    background: var(--card);
+    border: 2px solid var(--accent4);
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.2rem;
+    color: var(--accent4);
+    min-width: 56px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .timer-badge.urgent { border-color: var(--accent2); color: var(--accent2); animation: pulse 0.5s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+  .score-live {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.2rem;
+    color: var(--accent3);
+    white-space: nowrap;
+  }
+
+  .question-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+    display: flex; align-items: flex-start; gap: 16px;
+  }
+  .question-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent4));
+  }
+  .q-num-big {
+    font-family: 'Boogaloo', cursive;
+    font-size: 3rem;
+    line-height: 1;
+    color: rgba(255,255,255,0.07);
+    min-width: 52px;
+  }
+  .q-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    font-weight: 600;
+    padding-top: 4px;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .opt-btn {
+    background: var(--card);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: left;
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+  }
+  .opt-btn::before {
+    content: '';
+    position: absolute; inset:0;
+    background: var(--opt-color);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .opt-btn:hover:not(:disabled)::before { opacity: 0.08; }
+  .opt-btn:hover:not(:disabled) { border-color: var(--opt-color); transform: translateY(-2px); }
+
+  .opt-btn[data-opt="A"] { --opt-color: var(--btn-a); }
+  .opt-btn[data-opt="B"] { --opt-color: var(--btn-b); }
+  .opt-btn[data-opt="C"] { --opt-color: var(--btn-c); }
+  .opt-btn[data-opt="D"] { --opt-color: var(--btn-d); }
+
+  .opt-key {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--opt-color);
+    color: #0d0d2b;
+    font-weight: 900;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    position: relative; z-index:1;
+  }
+  .opt-text { position: relative; z-index:1; }
+
+  .opt-btn.correct {
+    border-color: var(--correct) !important;
+    background: rgba(34,197,94,0.15) !important;
+    animation: correctBounce 0.4s ease;
+  }
+  .opt-btn.wrong {
+    border-color: var(--wrong) !important;
+    background: rgba(239,68,68,0.15) !important;
+    animation: wrongShake 0.4s ease;
+  }
+  @keyframes correctBounce { 0%{transform:scale(1)} 40%{transform:scale(1.05)} 100%{transform:scale(1)} }
+  @keyframes wrongShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  .feedback-strip {
+    height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.1rem;
+    margin-bottom: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    gap: 8px;
+  }
+  .feedback-strip.show { opacity: 1; }
+  .feedback-strip.correct-fb { background: rgba(34,197,94,0.15); color: var(--correct); border: 1.5px solid rgba(34,197,94,0.3); }
+  .feedback-strip.wrong-fb { background: rgba(239,68,68,0.15); color: var(--wrong); border: 1.5px solid rgba(239,68,68,0.3); }
+
+  .btn-next {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.3rem;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent4), var(--accent3));
+    color: #0d0d2b;
+    transition: all 0.2s;
+    box-shadow: 0 6px 20px rgba(167,139,250,0.3);
+    display: none;
+  }
+  .btn-next.visible { display: block; }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(167,139,250,0.5); }
+
+  /* COMBO */
+  .combo-display {
+    text-align: center;
+    margin-bottom: 8px;
+    min-height: 32px;
+  }
+  .combo-text {
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.3rem;
+    color: var(--accent1);
+    display: inline-block;
+    animation: comboPop 0.4s ease;
+  }
+  @keyframes comboPop { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+
+  /* RESULT SCREEN */
+  #result-screen { text-align: center; }
+  .result-trophy {
+    font-size: 5rem;
+    margin-bottom: 8px;
+    animation: trophyBounce 1s ease;
+  }
+  @keyframes trophyBounce { 0%{transform:scale(0) rotate(-20deg)} 60%{transform:scale(1.2) rotate(5deg)} 100%{transform:scale(1) rotate(0)} }
+  .result-title {
+    font-family: 'Boogaloo', cursive;
+    font-size: 2.5rem;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-grade {
+    font-size: 1rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .score-big {
+    font-family: 'Boogaloo', cursive;
+    font-size: 6rem;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent3), var(--accent4));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .score-label { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+
+  .result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .res-stat {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .res-stat .rv { font-family:'Boogaloo',cursive; font-size:1.8rem; }
+  .res-stat .rl { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+  .btn-again {
+    width:100%;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.4rem;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: #0d0d2b;
+    transition: all 0.2s;
+    box-shadow: 0 8px 30px rgba(255,94,126,0.3);
+    margin-bottom: 10px;
+  }
+  .btn-again:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(255,94,126,0.5); }
+
+  .btn-review {
+    width:100%;
+    padding: 14px;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    font-family: 'Boogaloo', cursive;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .btn-review:hover { border-color: var(--accent4); color: var(--accent4); }
+
+  /* REVIEW SCREEN */
+  #review-screen {}
+  .review-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .btn-back {
+    background: var(--card);
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  .btn-back:hover { background: rgba(255,255,255,0.1); }
+  .review-title { font-family:'Boogaloo',cursive; font-size:1.8rem; }
+
+  .review-list { display:flex; flex-direction:column; gap:12px; max-height:70vh; overflow-y:auto; padding-right:4px; }
+  .review-list::-webkit-scrollbar { width:4px; }
+  .review-list::-webkit-scrollbar-track { background:transparent; }
+  .review-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:99px; }
+
+  .review-item {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    border-left: 4px solid var(--correct);
+    animation: slideIn 0.3s ease both;
+  }
+  .review-item.wrong-item { border-left-color: var(--wrong); }
+  .review-item .ri-q { font-size:0.9rem; font-weight:700; margin-bottom:8px; line-height:1.5; }
+  .review-item .ri-row { display:flex; gap:8px; font-size:0.8rem; margin-top:4px; }
+  .ri-yours { background:rgba(239,68,68,0.15); color:var(--wrong); padding:4px 10px; border-radius:8px; font-weight:700; }
+  .ri-correct { background:rgba(34,197,94,0.15); color:var(--correct); padding:4px 10px; border-radius:8px; font-weight:700; }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 14px;
+    top: -20px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 999;
+    animation: confettiFall var(--cf-dur) linear var(--cf-delay) both;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateX(0) rotate(0deg) translateY(0); opacity:1; }
+    100% { transform: translateX(var(--cf-x)) rotate(720deg) translateY(110vh); opacity:0; }
+  }
+
+  .high-score-banner {
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: #0d0d2b;
+    border-radius: 12px;
+    padding: 10px;
+    font-weight: 900;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 480px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .mode-grid { grid-template-columns: 1fr 1fr; }
+    .result-stats { grid-template-columns: repeat(3,1fr); }
+    .q-text { font-size:0.95rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="start-screen">
+    <div class="logo-badge">🎓 IPS Kelas 9</div>
+    <div class="title-main">KUIS ASKA</div>
+    <div class="title-sub">Uji kemampuanmu! Siap jadi juara? 🚀</div>
+
+    <div class="stats-row">
+      <div class="stat-chip">
+        <div class="val" id="hs-val">0</div>
+        <div class="lbl">High Score</div>
+      </div>
+      <div class="stat-chip">
+        <div class="val">50</div>
+        <div class="lbl">Total Soal</div>
+      </div>
+      <div class="stat-chip">
+        <div class="val" id="played-val">0</div>
+        <div class="lbl">Dimainkan</div>
+      </div>
+    </div>
+
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Pilih Mode</p>
+    <div class="mode-grid">
+      <div class="mode-card selected" data-mode="10">
+        <div class="mode-icon">⚡</div>
+        <div class="mode-name">Quick 10</div>
+        <div class="mode-desc">10 soal acak, santai</div>
+      </div>
+      <div class="mode-card" data-mode="25">
+        <div class="mode-icon">🎯</div>
+        <div class="mode-name">Challenge 25</div>
+        <div class="mode-desc">25 soal, lebih serius</div>
+      </div>
+      <div class="mode-card" data-mode="50">
+        <div class="mode-icon">🏆</div>
+        <div class="mode-name">Full 50</div>
+        <div class="mode-desc">Semua soal, full gas!</div>
+      </div>
+      <div class="mode-card" data-mode="time">
+        <div class="mode-icon">⏱️</div>
+        <div class="mode-name">Time Attack</div>
+        <div class="mode-desc">15 detik per soal!</div>
+      </div>
+    </div>
+
+    <button class="btn-start" id="btn-start">🚀 MULAI KUIS!</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div class="screen" id="quiz-screen">
+    <div class="quiz-header">
+      <div class="q-counter">No. <span id="q-current">1</span>/<span id="q-total">10</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="timer-badge" id="timer-badge" style="display:none">15</div>
+      <div class="score-live">⭐ <span id="score-live">0</span></div>
+    </div>
+
+    <div class="combo-display" id="combo-display"></div>
+
+    <div class="question-card">
+      <div class="q-num-big" id="q-num-big">01</div>
+      <div class="q-text" id="q-text">Pertanyaan loading...</div>
+    </div>
+
+    <div class="options-grid" id="options-grid"></div>
+
+    <div class="feedback-strip" id="feedback-strip"></div>
+    <button class="btn-next" id="btn-next">Lanjut ➜</button>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="result-screen">
+    <div class="result-trophy" id="result-trophy">🏆</div>
+    <div class="result-title" id="result-title">Mantap!</div>
+    <div class="result-grade" id="result-grade">Nilaimu sangat bagus!</div>
+    <div id="new-hs-banner" style="display:none" class="high-score-banner">🎉 NEW HIGH SCORE!</div>
+    <div class="score-big" id="score-big">0</div>
+    <div class="score-label">POIN TOTAL</div>
+    <div class="result-stats">
+      <div class="res-stat">
+        <div class="rv" id="res-correct" style="color:var(--correct)">0</div>
+        <div class="rl">Benar</div>
+      </div>
+      <div class="res-stat">
+        <div class="rv" id="res-wrong" style="color:var(--wrong)">0</div>
+        <div class="rl">Salah</div>
+      </div>
+      <div class="res-stat">
+        <div class="rv" id="res-pct" style="color:var(--accent1)">0%</div>
+        <div class="rl">Akurasi</div>
+      </div>
+    </div>
+    <button class="btn-again" id="btn-again">🔄 Main Lagi!</button>
+    <button class="btn-review" id="btn-review">📋 Lihat Pembahasan</button>
+  </div>
+
+  <!-- REVIEW SCREEN -->
+  <div class="screen" id="review-screen">
+    <div class="review-header">
+      <button class="btn-back" id="btn-back">← Kembali</button>
+      <div class="review-title">📋 Pembahasan</div>
+    </div>
+    <div class="review-list" id="review-list"></div>
+  </div>
+
+</div>
+
+<script>
+const ALL_QUESTIONS = [
+  {q:"Sistem pemerintahan pada masa Demokrasi Liberal adalah...",opts:["Presidensial","Parlementer","Otoriter","Militer"],ans:1},
+  {q:"Seringnya pergantian kabinet pada masa Demokrasi Liberal menyebabkan...",opts:["Stabilitas politik meningkat","Program pemerintah tidak berjalan baik","Ekonomi meningkat pesat","Kekuasaan presiden kuat"],ans:1},
+  {q:"Kebuntuan Konstituante terjadi karena...",opts:["Tidak ada anggota","Perbedaan pendapat tentang dasar negara","Intervensi asing","Presiden membubarkan sidang"],ans:1},
+  {q:"Salah satu dampak Dekrit Presiden 5 Juli 1959 adalah...",opts:["Sistem parlementer diperkuat","UUD 1945 tidak berlaku","Presiden memiliki kekuasaan lebih besar","DPR dibubarkan permanen"],ans:2},
+  {q:"Pada masa Demokrasi Terpimpin terjadi dominasi kekuasaan oleh...",opts:["DPR","Rakyat","Presiden","Partai"],ans:2},
+  {q:"Konsep NASAKOM merupakan gabungan dari...",opts:["Nasionalis, Agama, Komunis","Nasional, Sosial, Komunis","Nasional, Agama, Militer","Nasional, Sosial, Militer"],ans:0},
+  {q:"Kebijakan pembangunan pada masa Demokrasi Terpimpin cenderung...",opts:["Terencana baik","Tidak terarah dan politis","Fokus industri modern","Berbasis teknologi"],ans:1},
+  {q:"Dampak ekonomi pada masa Demokrasi Terpimpin adalah...",opts:["Inflasi rendah","Ekonomi stabil","Inflasi tinggi","Produksi meningkat"],ans:2},
+  {q:"Inflasi tinggi pada masa Orde Lama menyebabkan...",opts:["Harga turun","Nilai uang naik","Harga barang naik","Ekspor meningkat"],ans:2},
+  {q:"Dampak inflasi tinggi adalah...",opts:["Daya beli masyarakat meningkat","Daya beli masyarakat menurun","Ekonomi stabil","Pendapatan tetap tinggi"],ans:1},
+  {q:"Konfrontasi Indonesia dengan Malaysia terjadi karena...",opts:["Kerja sama ekonomi","Penolakan pembentukan Malaysia","Perdagangan bebas","Bantuan luar negeri"],ans:1},
+  {q:"Kebijakan luar negeri konfrontatif berarti...",opts:["Kerja sama","Netral","Menentang pihak lain","Menghindari konflik"],ans:2},
+  {q:"Salah satu dampak peristiwa G30S 1965 adalah...",opts:["Demokrasi stabil","PKI dibubarkan","Inflasi menurun","Kabinet stabil"],ans:1},
+  {q:"Dampak lanjutan G30S adalah...",opts:["Muncul Orde Baru","Demokrasi Liberal kembali","Presiden mundur langsung","Ekonomi meningkat"],ans:0},
+  {q:"Perubahan dari Orde Lama ke Orde Baru ditandai dengan...",opts:["Stabilitas politik meningkat","Peralihan kekuasaan","Sistem parlementer","Pemilu langsung"],ans:1},
+  {q:"Tujuan utama Repelita adalah...",opts:["Stabilitas militer","Pertumbuhan ekonomi","Perluasan wilayah","Kekuasaan politik"],ans:1},
+  {q:"Keberhasilan Repelita terlihat dari...",opts:["Inflasi tinggi","Pembangunan infrastruktur","Konflik meningkat","Pengangguran naik"],ans:1},
+  {q:"Demokrasi pada masa Orde Baru bersifat...",opts:["Bebas","Terbatas","Langsung","Liberal"],ans:1},
+  {q:"Stabilitas politik pada masa Orde Baru bertujuan untuk...",opts:["Menekan rakyat","Mendukung pembangunan","Menghapus demokrasi","Mengurangi ekonomi"],ans:1},
+  {q:"Peran wakil presiden pada masa Orde Baru cenderung...",opts:["Dominan","Kuat","Terbatas","Bebas"],ans:2},
+  {q:"Dominasi presiden pada masa Orde Baru menyebabkan...",opts:["Demokrasi kuat","Kekuasaan terpusat","Rakyat bebas","Parlemen kuat"],ans:1},
+  {q:"Kontrol politik pada masa Orde Baru dilakukan melalui...",opts:["Kebebasan pers","Pembatasan partai","Demokrasi bebas","Pemilu langsung"],ans:1},
+  {q:"Dampak kontrol politik adalah...",opts:["Kebebasan meningkat","Kritik dibatasi","Pers bebas","Demokrasi luas"],ans:1},
+  {q:"Repelita dilaksanakan dalam jangka waktu...",opts:["1 tahun","3 tahun","5 tahun","10 tahun"],ans:2},
+  {q:"Dampak Repelita adalah...",opts:["Ekonomi menurun","Infrastruktur berkembang","Inflasi meningkat","Konflik sosial"],ans:1},
+  {q:"Investasi asing bermanfaat untuk...",opts:["Mengurangi produksi","Transfer teknologi","Menutup lapangan kerja","Menurunkan ekonomi"],ans:1},
+  {q:"Risiko investasi asing adalah...",opts:["Kemajuan teknologi","Ketergantungan","Ekspor meningkat","SDM meningkat"],ans:1},
+  {q:"KKN merupakan singkatan dari...",opts:["Korupsi, Kolusi, Nepotisme","Kerja, Keadilan, Nasional","Koperasi, Kredit, Nasional","Keuangan, Kredit, Negara"],ans:0},
+  {q:"Dampak sosial akhir Orde Baru adalah...",opts:["Stabilitas tinggi","Ketidakpuasan masyarakat","Ekonomi stabil","Politik kuat"],ans:1},
+  {q:"Reformasi membawa perubahan pada sistem...",opts:["Otoriter","Demokrasi lebih terbuka","Parlementer","Monarki"],ans:1},
+  {q:"SDM global harus memiliki...",opts:["Keterampilan rendah","Kompetensi tinggi","Ketergantungan","Pendidikan rendah"],ans:1},
+  {q:"Kebijakan ekonomi global bertujuan untuk...",opts:["Menutup perdagangan","Meningkatkan kerja sama","Mengurangi ekspor","Menghindari investasi"],ans:1},
+  {q:"Kerja sama lingkungan bertujuan untuk...",opts:["Eksploitasi alam","Pelestarian lingkungan","Industri besar","Perdagangan"],ans:1},
+  {q:"Kerja sama kesehatan global penting untuk...",opts:["Perang","Menangani penyakit","Industri","Politik"],ans:1},
+  {q:"Kerja sama bilateral adalah...",opts:["Banyak negara","Dua negara","Organisasi dunia","Regional"],ans:1},
+  {q:"Daya saing negara dipengaruhi oleh...",opts:["SDM rendah","Teknologi dan pendidikan","Konflik","Ketergantungan"],ans:1},
+  {q:"Ketergantungan global menyebabkan...",opts:["Kemandirian","Risiko ekonomi","Stabilitas tinggi","Produksi meningkat"],ans:1},
+  {q:"Peran Indonesia di dunia adalah...",opts:["Isolasi","Aktif dalam kerja sama","Menutup diri","Netral total"],ans:1},
+  {q:"Perkembangan teknologi global menyebabkan...",opts:["Informasi lambat","Komunikasi cepat","Produksi turun","Ekonomi menurun"],ans:1},
+  {q:"Kedaulatan negara berarti...",opts:["Ketergantungan","Kekuasaan tertinggi negara","Kerja sama bebas","Globalisasi"],ans:1},
+  {q:"APEC bertujuan...",opts:["Militer","Ekonomi","Politik","Budaya"],ans:1},
+  {q:"WTO berperan dalam...",opts:["Perang","Perdagangan internasional","Kesehatan","Pendidikan"],ans:1},
+  {q:"Peran PBB adalah...",opts:["Perdagangan","Perdamaian dunia","Ekonomi lokal","Politik dalam negeri"],ans:1},
+  {q:"Tujuan ASEAN adalah...",opts:["Konflik","Kerja sama regional","Perang","Isolasi"],ans:1},
+  {q:"WHO bergerak di bidang...",opts:["Ekonomi","Kesehatan","Militer","Pendidikan"],ans:1},
+  {q:"Teknologi dalam ekonomi global berfungsi untuk...",opts:["Menghambat produksi","Meningkatkan efisiensi","Menutup pasar","Mengurangi tenaga kerja"],ans:1},
+  {q:"Ekspor adalah...",opts:["Membeli barang dari luar negeri","Menjual barang ke luar negeri","Produksi dalam negeri","Distribusi lokal"],ans:1},
+  {q:"Aturan global dibuat untuk...",opts:["Membatasi negara","Mengatur hubungan internasional","Menutup perdagangan","Mengurangi kerja sama"],ans:1},
+  {q:"Strategi nasional menghadapi globalisasi adalah...",opts:["Menutup diri","Meningkatkan daya saing","Menghindari teknologi","Mengurangi pendidikan"],ans:1},
+  {q:"Salah satu masalah global adalah...",opts:["Teknologi maju","Perdagangan bebas","Perubahan iklim","Komunikasi cepat"],ans:2},
+];
+
+const KEYS = ['A','B','C','D'];
+const COLORS_OPT = ['var(--btn-a)','var(--btn-b)','var(--btn-c)','var(--btn-d)'];
+
+let selectedMode = '10';
+let questions = [];
+let current = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let combo = 0;
+let maxCombo = 0;
+let answered = false;
+let timerInterval = null;
+let timeLeft = 15;
+let isTimeMode = false;
+let history = []; // {qIdx, chosen, correct}
+
+// ---- STARS ----
+(function() {
+  const s = document.getElementById('stars');
+  for (let i=0;i<80;i++) {
+    const d = document.createElement('div');
+    d.className = 'star';
+    d.style.cssText = `
+      width:${Math.random()*3+1}px;
+      height:${Math.random()*3+1}px;
+      top:${Math.random()*100}%;
+      left:${Math.random()*100}%;
+      --dur:${Math.random()*4+2}s;
+      --delay:${Math.random()*4}s;
+      --op:${Math.random()*0.7+0.2};
+    `;
+    s.appendChild(d);
+  }
+})();
+
+// ---- MODE SELECTION ----
+document.querySelectorAll('.mode-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedMode = card.dataset.mode;
+  });
+});
+
+// ---- LOAD STATS ----
+function loadStats() {
+  const hs = parseInt(localStorage.getItem('aska_hs') || '0');
+  const played = parseInt(localStorage.getItem('aska_played') || '0');
+  document.getElementById('hs-val').textContent = hs;
+  document.getElementById('played-val').textContent = played;
+}
+loadStats();
+
+// ---- START ----
+document.getElementById('btn-start').addEventListener('click', startGame);
+function startGame() {
+  isTimeMode = selectedMode === 'time';
+  const count = isTimeMode ? 15 : parseInt(selectedMode);
+  const shuffled = [...ALL_QUESTIONS].sort(() => Math.random()-0.5);
+  questions = shuffled.slice(0, count);
+  current = 0; score = 0; correctCount = 0; wrongCount = 0; combo = 0; maxCombo = 0;
+  history = [];
+  showScreen('quiz-screen');
+  document.getElementById('q-total').textContent = questions.length;
+  document.getElementById('timer-badge').style.display = isTimeMode ? 'flex' : 'none';
+  loadQuestion();
+}
+
+// ---- SHOW SCREEN ----
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ---- LOAD QUESTION ----
+function loadQuestion() {
+  answered = false;
+  clearTimer();
+  const q = questions[current];
+  const qi = current;
+
+  document.getElementById('q-current').textContent = current+1;
+  document.getElementById('q-num-big').textContent = String(current+1).padStart(2,'0');
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('score-live').textContent = score;
+  document.getElementById('progress-fill').style.width = `${(current/questions.length)*100}%`;
+
+  const fb = document.getElementById('feedback-strip');
+  fb.className = 'feedback-strip';
+  fb.textContent = '';
+
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.classList.remove('visible');
+
+  document.getElementById('combo-display').innerHTML = '';
+
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  q.opts.forEach((opt,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.dataset.opt = KEYS[i];
+    btn.innerHTML = `<span class="opt-key">${KEYS[i]}</span><span class="opt-text">${opt}</span>`;
+    btn.addEventListener('click', () => handleAnswer(i));
+    grid.appendChild(btn);
+  });
+
+  if (isTimeMode) {
+    timeLeft = 15;
+    document.getElementById('timer-badge').textContent = timeLeft;
+    document.getElementById('timer-badge').classList.remove('urgent');
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer-badge').textContent = timeLeft;
+      if (timeLeft <= 5) document.getElementById('timer-badge').classList.add('urgent');
+      if (timeLeft <= 0) {
+        clearTimer();
+        handleAnswer(-1); // timeout
+      }
+    }, 1000);
+  }
+}
+
+function clearTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ---- ANSWER ----
+function handleAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  clearTimer();
+  const q = questions[current];
+  const correct = chosen === q.ans;
+  history.push({ q: q, chosen, correct });
+
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.ans) btn.classList.add('correct');
+    else if (i === chosen && !correct) btn.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('feedback-strip');
+  if (chosen === -1) {
+    fb.className = 'feedback-strip wrong-fb show';
+    fb.innerHTML = '⏰ Waktu habis! Jawaban: ' + KEYS[q.ans];
+    combo = 0;
+  } else if (correct) {
+    const pts = isTimeMode ? (10 + timeLeft) : 10;
+    const bonus = combo >= 2 ? combo * 2 : 0;
+    score += pts + bonus;
+    correctCount++;
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+    document.getElementById('score-live').textContent = score;
+    fb.className = 'feedback-strip correct-fb show';
+    fb.innerHTML = combo >= 3
+      ? `🔥 COMBO x${combo}! +${pts+bonus} poin`
+      : `✅ Benar! +${pts+bonus} poin`;
+    if (combo >= 2) showCombo(combo);
+  } else {
+    wrongCount++;
+    combo = 0;
+    fb.className = 'feedback-strip wrong-fb show';
+    fb.innerHTML = `❌ Salah. Jawaban: <strong>${KEYS[q.ans]}. ${q.opts[q.ans]}</strong>`;
+  }
+
+  document.getElementById('btn-next').classList.add('visible');
+}
+
+function showCombo(n) {
+  const d = document.getElementById('combo-display');
+  const msg = n >= 5 ? `🔥🔥 ULTRA COMBO x${n}!!` : `🔥 COMBO x${n}!`;
+  d.innerHTML = `<span class="combo-text">${msg}</span>`;
+}
+
+// ---- NEXT ----
+document.getElementById('btn-next').addEventListener('click', () => {
+  current++;
+  if (current >= questions.length) {
+    showResult();
+  } else {
+    loadQuestion();
+  }
+});
+
+// ---- RESULT ----
+function showResult() {
+  showScreen('result-screen');
+  const pct = Math.round((correctCount/questions.length)*100);
+  const prevHs = parseInt(localStorage.getItem('aska_hs') || '0');
+  const played = parseInt(localStorage.getItem('aska_played') || '0') + 1;
+  localStorage.setItem('aska_played', played);
+
+  let title, trophy, grade;
+  if (pct >= 90) { title='Luar Biasa! 🎉'; trophy='🏆'; grade='Nilai sempurna! Kamu siap ujian!'; }
+  else if (pct >= 75) { title='Mantap Banget!'; trophy='🥇'; grade='Hampir sempurna, terus semangat!'; }
+  else if (pct >= 60) { title='Bagus!'; trophy='🥈'; grade='Lumayan, masih perlu latihan lagi.'; }
+  else if (pct >= 40) { title='Cukup!'; trophy='🥉'; grade='Perlu belajar lebih giat nih!'; }
+  else { title='Ayo Coba Lagi!'; trophy='📚'; grade='Jangan nyerah, belajar lagi ya!'; }
+
+  document.getElementById('result-trophy').textContent = trophy;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-grade').textContent = grade;
+  document.getElementById('score-big').textContent = score;
+  document.getElementById('res-correct').textContent = correctCount;
+  document.getElementById('res-wrong').textContent = wrongCount;
+  document.getElementById('res-pct').textContent = pct + '%';
+
+  const newHs = score > prevHs;
+  if (newHs) {
+    localStorage.setItem('aska_hs', score);
+    document.getElementById('new-hs-banner').style.display = 'block';
+    launchConfetti();
+  } else {
+    document.getElementById('new-hs-banner').style.display = 'none';
+    if (pct >= 75) launchConfetti();
+  }
+  loadStats();
+}
+
+// ---- CONFETTI ----
+function launchConfetti() {
+  const colors = ['#f9c02e','#ff5e7e','#3de8c5','#a78bfa','#fff'];
+  for (let i=0;i<80;i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left:${Math.random()*100}vw;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      --cf-dur:${Math.random()*2+1.5}s;
+      --cf-delay:${Math.random()*1}s;
+      --cf-x:${(Math.random()-0.5)*200}px;
+      transform:rotate(${Math.random()*360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+}
+
+// ---- AGAIN ----
+document.getElementById('btn-again').addEventListener('click', () => {
+  showScreen('start-screen');
+});
+
+// ---- REVIEW ----
+document.getElementById('btn-review').addEventListener('click', () => {
+  buildReview();
+  showScreen('review-screen');
+});
+document.getElementById('btn-back').addEventListener('click', () => {
+  showScreen('result-screen');
+});
+
+function buildReview() {
+  const list = document.getElementById('review-list');
+  list.innerHTML = '';
+  history.forEach((h, i) => {
+    const div = document.createElement('div');
+    div.className = 'review-item' + (h.correct ? '' : ' wrong-item');
+    div.style.animationDelay = (i*0.04) + 's';
+    const icon = h.correct ? '✅' : '❌';
+    let rowHtml = '';
+    if (!h.correct) {
+      const yourAns = h.chosen === -1 ? 'Timeout' : KEYS[h.chosen] + '. ' + h.q.opts[h.chosen];
+      rowHtml = `<div class="ri-row">
+        <span class="ri-yours">Kamu: ${h.chosen === -1 ? '⏰' : yourAns}</span>
+        <span class="ri-correct">✓ ${KEYS[h.q.ans]}. ${h.q.opts[h.q.ans]}</span>
+      </div>`;
+    }
+    div.innerHTML = `<div class="ri-q">${icon} ${i+1}. ${h.q.q}</div>${rowHtml}`;
+    list.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
